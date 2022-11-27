@@ -6,8 +6,7 @@ import java.util.NoSuchElementException;
 
 public class DLinkedList extends AbstractSequentialList<String> {
 
-    private final Node head = new Node();
-    private Node tail = head;
+    private final Node head = new Node(), tail = new Node(head);
     private int size;
 
     private static class Node {
@@ -20,12 +19,29 @@ public class DLinkedList extends AbstractSequentialList<String> {
 
         private Node() {
         }
+
+        private Node(Node p) {
+            prev = p;
+        }
     }
 
     private Node findNode(int index) {
-        Node curr = head;
-        for (int i = -1; i < index; i++) {
-            curr = curr.next;
+        if (index < 0 || index > size) {
+            throw new IndexOutOfBoundsException(String.format("Index: %d, Size: %d", index, size));
+        }
+
+        Node curr;
+
+        if (index < size / 2) {
+            curr = head;
+            for (int i = -1; i < index; i++) {
+                curr = curr.next;
+            }
+        } else {
+            curr = tail;
+            for (int i = size; i > index; i--) {
+                curr = curr.prev;
+            }
         }
 
         return curr;
@@ -33,19 +49,17 @@ public class DLinkedList extends AbstractSequentialList<String> {
 
     @Override
     public ListIterator<String> listIterator(int index) {
-        if (index < 0 || index > size) {
-            throw new IndexOutOfBoundsException(String.format("Index: %d, Size: %d", index, size));
-        }
         return new MyLIterator(index);
     }
 
-    private class MyLIterator implements ListIterator<String> {
+    protected class MyLIterator implements ListIterator<String> {
 
         private Node pointer, lastReturned = null;
         private int beforeIndex;
 
         public MyLIterator(int index) {
-            pointer = ((beforeIndex = index) == size) ? null : findNode(index);
+            pointer = findNode(index);
+            beforeIndex = index;
         }
 
         @Override
@@ -76,7 +90,7 @@ public class DLinkedList extends AbstractSequentialList<String> {
                 throw new NoSuchElementException();
             }
 
-            lastReturned = pointer = (pointer == null) ? tail : pointer;
+            lastReturned = pointer = pointer.prev;
             beforeIndex--;
             return lastReturned.data;
         }
@@ -105,11 +119,7 @@ public class DLinkedList extends AbstractSequentialList<String> {
 
             // Remove Node
             lastReturned.prev.next = lastReturned.next;
-            if (lastReturned == tail) {
-                tail = lastReturned.prev;
-            } else {
-                lastReturned.next.prev = lastReturned.prev;
-            }
+            lastReturned.next.prev = lastReturned.prev;
 
             // Ensure Iterator stays correct
             if (lastReturned == pointer) { // Which means that we last called `previous()`.
@@ -137,15 +147,9 @@ public class DLinkedList extends AbstractSequentialList<String> {
             Node newNode = new Node(s);
             newNode.next = pointer;
 
-            if (pointer != null) {
-                pointer.prev.next = newNode;
-                newNode.prev = pointer.prev;
-                pointer.prev = newNode;
-            } else {
-                newNode.prev = tail;
-                tail.next = newNode;
-                tail = newNode;
-            }
+            pointer.prev.next = newNode;
+            newNode.prev = pointer.prev;
+            pointer.prev = newNode;
 
             size++;
             beforeIndex++;
